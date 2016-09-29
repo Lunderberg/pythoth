@@ -1,0 +1,4 @@
+sympy
+ipython
+numpy
+scipy
