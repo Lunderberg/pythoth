@@ -22,14 +22,17 @@ class MainWindow(QtGui.QMainWindow):
             ('linear(slope,offset)','slope*x + offset'),
             ]
 
-        self.dataframe = DataFrame(subexpressions=self.subexpressions)
-        fill_placeholder(self.ui.placeholder, self.dataframe)
-        self.dataframe.formulaChanged.connect(self.on_formula_change)
+        self.data_frame = DataFrame(subexpressions=self.subexpressions)
+        fill_placeholder(self.ui.placeholder, self.data_frame)
+        self.data_frame.formulaChanged.connect(self.on_formula_change)
 
         self.variables = VariableTab()
         fill_placeholder(self.ui.variables_box, self.variables)
+        self.variables.initialParamsChanged.connect(self.on_initial_params_change)
 
-        self.dataframe.raw_formula = 'A*exp(-(x-mu)**2/(2*sigma**2))'
+        self.ui.fit_button.clicked.connect(self.on_do_fit)
+
+        self.data_frame.raw_formula = 'A*exp(-(x-mu)**2/(2*sigma**2))'
 
     def on_formula_change(self, new_formula):
         symbols = [sym.name for sym in new_formula.free_symbols]
@@ -37,3 +40,12 @@ class MainWindow(QtGui.QMainWindow):
         if 'x' in symbols:
             symbols.remove('x')
         self.variables.define_variables(symbols)
+
+        self.variables.initial_values()
+
+    def on_initial_params_change(self, params):
+        self.data_frame.params = params
+
+    def on_do_fit(self, *args):
+        self.data_frame.fit()
+        self.variables.fitted_values = self.data_frame.params

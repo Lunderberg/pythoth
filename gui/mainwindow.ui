@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>830</width>
+    <height>622</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,66 +28,100 @@ QGroupBox::title {
 }</string>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0" rowspan="2">
-     <widget class="QGroupBox" name="placeholder">
-      <property name="title">
-       <string>Data Input</string>
+    <item row="0" column="0">
+     <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
       </property>
-      <layout class="QGridLayout" name="gridLayout_3"/>
-     </widget>
-    </item>
-    <item row="0" column="1">
-     <widget class="QGroupBox" name="variables_box">
-      <property name="title">
-       <string>Variables</string>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="1">
-     <widget class="QGroupBox" name="groupBox_3">
-      <property name="title">
-       <string>Fit Settings</string>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0">
-        <widget class="QComboBox" name="comboBox">
-         <item>
-          <property name="text">
-           <string>Auto-Detect Method</string>
+      <widget class="QGroupBox" name="placeholder">
+       <property name="minimumSize">
+        <size>
+         <width>400</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Data Input</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_3"/>
+      </widget>
+      <widget class="QFrame" name="frame">
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Plain</enum>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QGroupBox" name="variables_box">
+          <property name="minimumSize">
+           <size>
+            <width>400</width>
+            <height>0</height>
+           </size>
           </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Least Squares</string>
+          <property name="title">
+           <string>Parameters</string>
           </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Poisson Maximum Likelihood</string>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>Fit Settings</string>
           </property>
-         </item>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QComboBox" name="comboBox_2">
-         <item>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="0" column="0">
+            <widget class="QComboBox" name="comboBox_5">
+             <item>
+              <property name="text">
+               <string>Auto-Detect Method</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Least Squares</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Poisson Maximum Likelihood</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QComboBox" name="comboBox_6">
+             <item>
+              <property name="text">
+               <string>Auto-Detect Error Method</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>All Equal One</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Sqrt(Counts)</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="fit_button">
           <property name="text">
-           <string>Auto-Detect Error Method</string>
+           <string>Fit</string>
           </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>All Equal One</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Sqrt(Counts)</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-      </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
    </layout>
@@ -97,7 +131,7 @@ QGroupBox::title {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>830</width>
      <height>15</height>
     </rect>
    </property>
