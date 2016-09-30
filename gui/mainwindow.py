@@ -5,6 +5,7 @@ from PyQt4 import uic, QtGui, QtCore
 from .data_frame import DataFrame
 from .variable_tab import VariableTab
 from .util import fill_placeholder, load_style
+from backend.free_parameters import FreeParameters
 
 Ui_MainWindow, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),'mainwindow.ui'))
 
@@ -21,12 +22,14 @@ class MainWindow(QtGui.QMainWindow):
             ('gausn(area,mu,sigma)','area/sqrt(2*pi*sigma**2) * exp(-(x-mu)**2/(2*sigma**2))'),
             ('linear(slope,offset)','slope*x + offset'),
             ]
+        self.parameters = FreeParameters()
 
-        self.data_frame = DataFrame(subexpressions=self.subexpressions)
+        self.data_frame = DataFrame(parameters=self.parameters,
+                                    subexpressions=self.subexpressions)
         fill_placeholder(self.ui.placeholder, self.data_frame)
         self.data_frame.formulaChanged.connect(self.on_formula_change)
 
-        self.variables = VariableTab()
+        self.variables = VariableTab(parent=self, parameters=self.parameters)
         fill_placeholder(self.ui.variables_box, self.variables)
         self.variables.initialParamsChanged.connect(self.on_initial_params_change)
 
@@ -48,4 +51,3 @@ class MainWindow(QtGui.QMainWindow):
 
     def on_do_fit(self, *args):
         self.data_frame.fit()
-        self.variables.fitted_values = self.data_frame.params

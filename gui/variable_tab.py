@@ -7,71 +7,55 @@ from .util import fill_placeholder
 class VariableTab(QtGui.QTableWidget):
     initialParamsChanged = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parameters, parent=None):
         super().__init__(parent)
         self.verticalHeader().hide()
         self.horizontalScrollBar().hide()
 
-        self.all_variables = {}
+        self.parameters = parameters
+        self.parameters.param_changed.connect(self.from_parameter_change)
+        self.parameters.param_list_changed.connect(self.from_parameter_list_change)
 
-    def define_variables(self, var_list):
+        self.index_lookup = {}
+
+    def from_parameter_list_change(self, parameters):
         self.clear()
-        self.setRowCount(len(var_list))
+        self.index_lookup = {}
+
+        self.setRowCount(len(parameters))
         self.setColumnCount(3)
         self.setHorizontalHeaderLabels(['Parameter','Initial Value','Fitted Value'])
-        for i,var_name in enumerate(var_list):
-            label = QtGui.QLabel(var_name, self)
+        for i,par in enumerate(parameters):
+            label = QtGui.QLabel(par.name, self)
             self.setCellWidget(i,0,label)
 
             spinner = QtGui.QDoubleSpinBox(self)
             spinner.setMinimum(-1e99)
             spinner.setMaximum(1e99)
-            spinner.valueChanged.connect(self.on_value_change)
+            #spinner.valueChanged.connect(lambda value,name=par.name:self.on_initial_value_change(name,value))
+            spinner.editingFinished.connect(
+                lambda par=par,spinner=spinner :
+                self.on_initial_value_change(par,spinner)
+            )
             self.setCellWidget(i,1,spinner)
 
             fitted = QtGui.QLabel('',self)
             self.setCellWidget(i,2,fitted)
 
-    def initial_values(self):
-        output = {}
-        for i in range(self.rowCount()):
-            par_name = self.cellWidget(i,0).text()
-            par_value = self.cellWidget(i,1).value()
-            output[par_name] = par_value
-        return output
+            self.index_lookup[par.name] = i
 
-    def fitted_values(self, values):
-        for i in range(self.rowCount()):
-            par_name = self.cellWidget(i,0).text()
-            value_cell = self.cellWidget(i,2)
-            try:
-                value_cell.setText(str(values[par_name]))
-            except KeyError:
-                value_cell.setText('')
-    fitted_values = property(fset=fitted_values)
+            self.from_parameter_change(par)
 
-
-    def _get_entry(self, var_name):
-        try:
-            return self.var_entries[var_name]
-        except KeyError:
-            self.var_entries[var_name] = VariableEntry(symbol=var_name)
-            return self.var_entries[var_name]
+    def from_parameter_change(self, par):
+        i = self.index_lookup[par.name]
+        self.cellWidget(i,0).setText(par.name)
+        self.cellWidget(i,1).setValue(par.initial_value)
+        self.cellWidget(i,2).setText(str(par.fitted_value))
 
     def resizeEvent(self, event):
         for i in range(self.columnCount()):
             self.setColumnWidth(i, self.width()/self.columnCount())
         super().resizeEvent(event)
 
-    def on_value_change(self, *args):
-        self.initialParamsChanged.emit(self.initial_values())
-
-
-
-class VariableEntry:
-    def __init__(self, symbol):
-        self.symbol = symbol
-        self.initial = 0
-        self.lower_bound = None
-        self.upper_bound = None
-        self.fitted_val = None
+    def on_initial_value_change(self, par, spinner):
+        par.initial_value = spinner.value()

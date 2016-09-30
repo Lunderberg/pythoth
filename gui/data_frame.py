@@ -24,12 +24,14 @@ Ui_DataFrame, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),'datafra
 class DataFrame(QtGui.QWidget):
     formulaChanged = QtCore.pyqtSignal(SympyBasic)
 
-    def __init__(self, parent=None, subexpressions=None):
+    def __init__(self, parameters, parent=None, subexpressions=None):
         super().__init__(parent)
         self._setup_ui()
 
         self.subexpressions = subexpressions
-        self._params = {}
+
+        self.parameters = parameters
+        self.parameters.param_changed.connect(lambda *args:self.redraw())
 
         self._gen_data()
         self.redraw()
@@ -57,15 +59,6 @@ class DataFrame(QtGui.QWidget):
         counts = [sum(random.randint(1,6) for _ in range(5)) for _ in range(1000)]
         self.ydata, self.xdata = np.histogram(counts)
 
-    @property
-    def params(self):
-        return self._params
-
-    @params.setter
-    def params(self,val):
-        self._params = val
-        self.redraw()
-
     def set_data(self, xdata, ydata):
         self.xdata = np.array(xdata)
         self.ydata = np.array(ydata)
@@ -91,17 +84,18 @@ class DataFrame(QtGui.QWidget):
         N = 1000
         xfit = np.arange(low, high, (high-low)/N)
 
-        formula = self.formula
-        if formula is None:
+        fit_function = self.fit_function
+        if fit_function is None:
             return
 
-        # TODO: Fail gracefully if not all params are known
-        params = {name:self.params[name] for name in self.free_params}
-        fit_function = self.fit_function
+        initial_params = {par.name:par.initial_value for par in self.parameters}
+        yinitial = [fit_function(x=x,**initial_params) for x in xfit]
+        axes.plot(xfit,yinitial,color='red',linestyle='--')
 
-        yfit = [fit_function(x=x,**params) for x in xfit]
-
-        axes.plot(xfit,yfit,color='red')
+        fitted_params = {par.name:par.fitted_value for par in self.parameters}
+        if all(val!=None for val in fitted_params.values()):
+            yfitted = [fit_function(x=x,**fitted_params) for x in xfit]
+            axes.plot(xfit,yfitted,color='red')
 
 
     @property
@@ -120,7 +114,6 @@ class DataFrame(QtGui.QWidget):
         try:
             parsed = parse_expr(self.raw_formula)
         except (SyntaxError, TokenError) as e:
-            print('Error parsing:',e)
             return None
 
         if self.subexpressions:
@@ -144,22 +137,26 @@ class DataFrame(QtGui.QWidget):
         if formula is None:
             return None
 
-        return [sym.name for sym in formula.free_symbols if sym.name!='x']
+        return sorted(sym.name for sym in formula.free_symbols if sym.name!='x')
 
     def on_text_changed(self,*args):
         formula = self.formula
         if formula is not None:
-            self.formulaChanged.emit(formula)
+            self.parameters.define_variables(self.free_params)
             self.formula_display.latex_text = '${}$'.format(sympy.latex(formula))
 
     def fit(self):
         func = self.fit_function
+        param_names = func.__code__.co_varnames[1:]
+        initial = [self.parameters[name].initial_value for name in param_names]
+
         if len(self.xdata) == len(self.ydata):
             xdata = self.xdata
         elif len(self.xdata) == len(self.ydata)+1:
             xdata = (self.xdata[:-1] + self.xdata[1:])/2
 
-        fitval, cov = scipy.optimize.curve_fit(func, xdata, self.ydata)
-        param_names = func.__code__.co_varnames[1:]
+        fitvals, cov = scipy.optimize.curve_fit(func, xdata, self.ydata,
+                                                p0=initial)
 
-        self.params = {name:val for name,val in zip(param_names,fitval)}
+        for name,val in zip(param_names, fitvals):
+            self.parameters[name].fitted_value = val
