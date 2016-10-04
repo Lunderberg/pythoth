@@ -15,6 +15,13 @@ class LatexLabel(QtGui.QWidget):
         self.canvas = FigureCanvas(self.figure)
         fill_placeholder(self, self.canvas)
 
+        self.text = self.figure.suptitle('',
+                                         x=0.5, y=0.5,
+                                         horizontalalignment='center',
+                                         verticalalignment='center',
+                                         fontsize=36
+                                     )
+
         self.latex_text = ''
 
     @property
@@ -24,11 +31,18 @@ class LatexLabel(QtGui.QWidget):
     @latex_text.setter
     def latex_text(self, val):
         self._latex_text = val
-        self.figure.clear()
-        self.figure.suptitle(val,
-                     x=0.5, y=0.5,
-                     horizontalalignment='center',
-                     verticalalignment='center',
-                     fontsize=36
-        )
+
+        self.text.set_text(val)
+        self.adjust_text_size()
         self.canvas.draw()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.adjust_text_size()
+
+    def adjust_text_size(self):
+        bounds = self.text.get_window_extent(self.canvas.get_renderer())
+        if bounds.width != 0 and bounds.height != 0:
+            scaling = min(self.canvas.width()/bounds.width,
+                          self.canvas.height()/bounds.height)
+            self.text.set_fontsize(self.text.get_fontsize()*scaling)
