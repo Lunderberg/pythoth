@@ -54,7 +54,7 @@ QGroupBox::title {
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QGroupBox" name="variables_box">
+         <widget class="QGroupBox" name="parameters_box">
           <property name="minimumSize">
            <size>
             <width>400</width>

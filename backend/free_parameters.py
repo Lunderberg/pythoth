@@ -3,12 +3,16 @@
 from .signal import Signal
 
 class FreeParameters:
-    def __init__(self):
+    def __init__(self, formula = None):
         self.param_changed = Signal()
         self.param_list_changed = Signal()
 
         self.all_vars = {}
         self.current_vars = []
+
+        if formula is not None:
+            formula.free_parameters_changed.connect(self.define_variables)
+
 
     def define_variables(self, var_list):
         self.current_vars = [self[var_name] for var_name in var_list]

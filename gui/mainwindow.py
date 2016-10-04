@@ -3,9 +3,10 @@ import os
 from PyQt4 import uic, QtGui, QtCore
 
 from .data_frame import DataFrame
-from .variable_tab import VariableTab
+from .parameter_tab import ParameterTab
 from .util import fill_placeholder, load_style
 from backend.free_parameters import FreeParameters
+from backend.formula import Formula
 
 Ui_MainWindow, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),'mainwindow.ui'))
 
@@ -22,32 +23,19 @@ class MainWindow(QtGui.QMainWindow):
             ('gausn(area,mu,sigma)','area/sqrt(2*pi*sigma**2) * exp(-(x-mu)**2/(2*sigma**2))'),
             ('linear(slope,offset)','slope*x + offset'),
             ]
-        self.parameters = FreeParameters()
+        self.formula = Formula(self.subexpressions)
+        self.parameters = FreeParameters(formula=self.formula)
 
         self.data_frame = DataFrame(parameters=self.parameters,
-                                    subexpressions=self.subexpressions)
+                                    formula=self.formula)
         fill_placeholder(self.ui.placeholder, self.data_frame)
-        self.data_frame.formulaChanged.connect(self.on_formula_change)
 
-        self.variables = VariableTab(parent=self, parameters=self.parameters)
-        fill_placeholder(self.ui.variables_box, self.variables)
-        self.variables.initialParamsChanged.connect(self.on_initial_params_change)
+        self.parameters = ParameterTab(parent=self, parameters=self.parameters)
+        fill_placeholder(self.ui.parameters_box, self.parameters)
 
         self.ui.fit_button.clicked.connect(self.on_do_fit)
 
-        self.data_frame.raw_formula = 'A*exp(-(x-mu)**2/(2*sigma**2))'
-
-    def on_formula_change(self, new_formula):
-        symbols = [sym.name for sym in new_formula.free_symbols]
-        symbols.sort()
-        if 'x' in symbols:
-            symbols.remove('x')
-        self.variables.define_variables(symbols)
-
-        self.variables.initial_values()
-
-    def on_initial_params_change(self, params):
-        self.data_frame.params = params
+        self.formula.raw_text = 'A*exp(-(x-mu)**2/(2*sigma**2))'
 
     def on_do_fit(self, *args):
         self.data_frame.fit()

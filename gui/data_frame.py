@@ -9,26 +9,23 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 import numpy as np
 
 import sympy
-from sympy.parsing.sympy_parser import parse_expr
-from sympy.parsing.sympy_tokenize import TokenError
 from sympy.core.basic import Basic as SympyBasic
 
 import scipy.optimize
 
 from .util import fill_placeholder
 from .latex_label import LatexLabel
-from backend.substitutions import all_subs
 
 Ui_DataFrame, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),'dataframe.ui'))
 
 class DataFrame(QtGui.QWidget):
-    formulaChanged = QtCore.pyqtSignal(SympyBasic)
-
-    def __init__(self, parameters, parent=None, subexpressions=None):
+    def __init__(self, formula, parameters, parent=None):
         super().__init__(parent)
         self._setup_ui()
 
-        self.subexpressions = subexpressions
+        self.formula = formula
+        self.formula.raw_formula_changed.connect(self.from_raw_formula_changed)
+        self.formula.formula_changed.connect(self.from_formula_changed)
 
         self.parameters = parameters
         self.parameters.param_changed.connect(lambda *args:self.redraw())
@@ -84,7 +81,7 @@ class DataFrame(QtGui.QWidget):
         N = 1000
         xfit = np.arange(low, high, (high-low)/N)
 
-        fit_function = self.fit_function
+        fit_function = self.formula.fit_function
         if fit_function is None:
             return
 
@@ -97,56 +94,22 @@ class DataFrame(QtGui.QWidget):
             yfitted = [fit_function(x=x,**fitted_params) for x in xfit]
             axes.plot(xfit,yfitted,color='red')
 
-
-    @property
-    def raw_formula(self):
-        return self.ui.formula_input.text()
-
-    @raw_formula.setter
-    def raw_formula(self, val):
-        self.ui.formula_input.setText(val)
-
-    @property
-    def formula(self):
-        if not self.raw_formula:
-            return None
-
-        try:
-            parsed = parse_expr(self.raw_formula)
-        except (SyntaxError, TokenError) as e:
-            return None
-
-        if self.subexpressions:
-            parsed = all_subs(parsed, self.subexpressions)
-
-        return parsed
-
-    @property
-    def fit_function(self):
-        formula = self.formula
-        if formula is None:
-            return None
-
-        symbols = sorted(list(formula.free_symbols),
-                         key=lambda sym:sym.name!='x')
-        return sympy.lambdify(symbols, formula, dummify=False, modules=np)
-
-    @property
-    def free_params(self):
-        formula = self.formula
-        if formula is None:
-            return None
-
-        return sorted(sym.name for sym in formula.free_symbols if sym.name!='x')
+    def from_raw_formula_changed(self, text):
+        if text != self.ui.formula_input.text():
+            self.ui.formula_input.setText(text)
 
     def on_text_changed(self,*args):
-        formula = self.formula
-        if formula is not None:
-            self.parameters.define_variables(self.free_params)
-            self.formula_display.latex_text = '${}$'.format(sympy.latex(formula))
+        self.formula.raw_text = self.ui.formula_input.text()
+
+    def from_formula_changed(self, formula):
+        self.formula_display.latex_text = formula.latex
+        # TODO: Intelligently redraw here
 
     def fit(self):
-        func = self.fit_function
+        func = self.formula.fit_function
+        if not func:
+            return
+
         param_names = func.__code__.co_varnames[1:]
         initial = [self.parameters[name].initial_value for name in param_names]
 

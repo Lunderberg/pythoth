@@ -4,9 +4,7 @@ from PyQt4 import uic, QtGui, QtCore
 
 from .util import fill_placeholder
 
-class VariableTab(QtGui.QTableWidget):
-    initialParamsChanged = QtCore.pyqtSignal(dict)
-
+class ParameterTab(QtGui.QTableWidget):
     def __init__(self, parameters, parent=None):
         super().__init__(parent)
         self.verticalHeader().hide()
@@ -32,7 +30,6 @@ class VariableTab(QtGui.QTableWidget):
             spinner = QtGui.QDoubleSpinBox(self)
             spinner.setMinimum(-1e99)
             spinner.setMaximum(1e99)
-            #spinner.valueChanged.connect(lambda value,name=par.name:self.on_initial_value_change(name,value))
             spinner.editingFinished.connect(
                 lambda par=par,spinner=spinner :
                 self.on_initial_value_change(par,spinner)
