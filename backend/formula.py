@@ -84,3 +84,24 @@ class Formula:
             return '${}$'.format(sympy.latex(formula))
         else:
             return ''
+
+    def apply(self, xvalues, free_parameters, value_type='fitted'):
+        assert value_type in ('fitted','initial'), "Invalid value_type '{}'".format(value_type)
+
+        # Grab the parameters
+        if value_type == 'fitted':
+            params = free_parameters.fitted_values()
+        else:
+            params = free_parameters.initial_values()
+
+        # Remove any parameters that don't belong to this function
+        try:
+            params = {name:params[name] for name in self.free_params}
+        except (KeyError,TypeError):
+            return None
+
+        if any(val==None for val in params.values()):
+            return None
+
+        # Apply the function
+        return self.fit_function(x=xvalues, **params)

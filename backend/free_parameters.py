@@ -9,16 +9,24 @@ class FreeParameters:
 
         self.all_vars = {}
         self.current_vars = []
+        self.current_var_lookup = {}
 
         if formula is not None:
             formula.free_parameters_changed.connect(self.define_variables)
 
 
     def define_variables(self, var_list):
-        self.current_vars = [self[var_name] for var_name in var_list]
+        self.current_vars = [self.get_or_make(var_name) for var_name in var_list]
+        self.current_var_lookup = {par.name:par for par in self.current_vars}
         self.param_list_changed.emit(self)
 
-    def __getitem__(self, key):
+    def initial_values(self):
+        return {par.name:par.initial_value for par in self}
+
+    def fitted_values(self):
+        return {par.name:par.fitted_value for par in self}
+
+    def get_or_make(self, key):
         try:
             return self.all_vars[key]
         except KeyError:
@@ -27,6 +35,14 @@ class FreeParameters:
 
     def __iter__(self):
         return iter(self.current_vars)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self.current_vars[key]
+        elif isinstance(key, str):
+            return self.current_var_lookup[key]
+        else:
+            raise TypeError('Index of FreeParameters must be int or str')
 
     def __len__(self):
         return len(self.current_vars)

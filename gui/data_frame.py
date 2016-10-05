@@ -81,17 +81,12 @@ class DataFrame(QtGui.QWidget):
         N = 1000
         xfit = np.arange(low, high, (high-low)/N)
 
-        fit_function = self.formula.fit_function
-        if fit_function is None:
-            return
+        yinitial = self.formula.apply(xfit, self.parameters, value_type='initial')
+        if yinitial is not None:
+            axes.plot(xfit,yinitial,color='red',linestyle='--')
 
-        initial_params = {par.name:par.initial_value for par in self.parameters}
-        yinitial = [fit_function(x=x,**initial_params) for x in xfit]
-        axes.plot(xfit,yinitial,color='red',linestyle='--')
-
-        fitted_params = {par.name:par.fitted_value for par in self.parameters}
-        if all(val!=None for val in fitted_params.values()):
-            yfitted = [fit_function(x=x,**fitted_params) for x in xfit]
+        yfitted = self.formula.apply(xfit, self.parameters, value_type='fitted')
+        if yfitted is not None:
             axes.plot(xfit,yfitted,color='red')
 
     def from_raw_formula_changed(self, text):
@@ -103,7 +98,6 @@ class DataFrame(QtGui.QWidget):
 
     def from_formula_changed(self, formula):
         self.formula_display.latex_text = formula.latex
-        # TODO: Intelligently redraw here
 
     def fit(self):
         func = self.formula.fit_function
