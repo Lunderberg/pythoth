@@ -43,8 +43,8 @@ class HistDataSet:
 
     def update(self, drawn_obj):
         ydata = np.insert(self.bin_content, 0, self.bin_content[0])
-        drawn_obj.set_xdata(self.bin_edges)
-        drawn_obj.set_ydata(ydata)
+        drawn_obj[0].set_xdata(self.bin_edges)
+        drawn_obj[0].set_ydata(ydata)
 
 
 class HistDataPoint:

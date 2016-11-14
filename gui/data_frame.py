@@ -31,7 +31,7 @@ class DataFrame(QtGui.QWidget):
         self.formula.formula_changed.connect(self.from_formula_changed)
 
         self.parameters = parameters
-        self.parameters.param_changed.connect(lambda *args:self.redraw())
+        self.parameters.param_changed.connect(lambda *args:self.update())
 
         self.redraw()
 
@@ -77,10 +77,10 @@ class DataFrame(QtGui.QWidget):
 
     def update_formula(self):
         xfit, yinitial, yfit = self.fit_formula_data()
-        self.initial_line.set_xdata(xfit)
-        self.initial_line.set_ydata(yinitial)
-        self.fitted_line.set_xdata(xfit)
-        self.fitted_line.set_ydata(yinitial)
+        self.initial_line[0].set_xdata(xfit)
+        self.initial_line[0].set_ydata(yinitial)
+        self.fitted_line[0].set_xdata(xfit)
+        self.fitted_line[0].set_ydata(yfit)
 
     def fit_formula_data(self):
         low = self.data_set.xdata.min()
@@ -102,7 +102,7 @@ class DataFrame(QtGui.QWidget):
 
 
     def from_data_point_changed(self, data_point):
-        self.redraw()
+        self.update()
 
     def from_raw_formula_changed(self, text):
         if text != self.ui.formula_input.text():
