@@ -19,9 +19,12 @@ from .latex_label import LatexLabel
 Ui_DataFrame, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__),'dataframe.ui'))
 
 class DataFrame(QtGui.QWidget):
-    def __init__(self, formula, parameters, parent=None):
+    def __init__(self, data_set, formula, parameters, parent=None):
         super().__init__(parent)
         self._setup_ui()
+
+        self.data_set = data_set
+        self.data_set.data_set_changed.connect(self.from_data_set_changed)
 
         self.formula = formula
         self.formula.raw_formula_changed.connect(self.from_raw_formula_changed)
@@ -30,7 +33,6 @@ class DataFrame(QtGui.QWidget):
         self.parameters = parameters
         self.parameters.param_changed.connect(lambda *args:self.redraw())
 
-        self._gen_data()
         self.redraw()
 
     def _setup_ui(self):
@@ -51,43 +53,56 @@ class DataFrame(QtGui.QWidget):
         self.formula_display = LatexLabel()
         fill_placeholder(self.ui.formula_disp, self.formula_display)
 
-    def _gen_data(self):
-        import random
-        counts = [sum(random.randint(1,6) for _ in range(5)) for _ in range(1000)]
-        self.ydata, self.xdata = np.histogram(counts)
-
-    def set_data(self, xdata, ydata):
-        self.xdata = np.array(xdata)
-        self.ydata = np.array(ydata)
-        self.redraw()
+    def from_data_set_changed(self, data_set):
+        self.update()
 
     def redraw(self):
         self.figure.clear()
-        axes = self.figure.add_subplot(1,1,1)
+        self.axes = self.figure.add_subplot(1,1,1)
 
-        if len(self.xdata) == len(self.ydata):
-            axes.plot(self.xdata, self.ydata)
-        elif len(self.xdata) == len(self.ydata)+1:
-            ydata = np.insert(self.ydata, 0, self.ydata[0])
-            axes.step(self.xdata,ydata)
-
-        self.plot_formula(axes)
+        self.drawn_data = self.data_set.draw(self.axes)
+        self.draw_formula(self.axes)
 
         self.canvas.draw()
 
-    def plot_formula(self, axes):
-        low = self.xdata.min()
-        high = self.xdata.max()
+    def update(self):
+        self.data_set.update(self.drawn_data)
+        self.update_formula()
+        self.canvas.draw()
+
+    def draw_formula(self, axes):
+        xfit, yinitial, yfit = self.fit_formula_data()
+        self.initial_line = axes.plot(xfit, yinitial, color='red', linestyle='--')
+        self.fitted_line = axes.plot(xfit, yfit, color='red')
+
+    def update_formula(self):
+        xfit, yinitial, yfit = self.fit_formula_data()
+        self.initial_line.set_xdata(xfit)
+        self.initial_line.set_ydata(yinitial)
+        self.fitted_line.set_xdata(xfit)
+        self.fitted_line.set_ydata(yinitial)
+
+    def fit_formula_data(self):
+        low = self.data_set.xdata.min()
+        high = self.data_set.xdata.max()
         N = 1000
         xfit = np.arange(low, high, (high-low)/N)
 
         yinitial = self.formula.apply(xfit, self.parameters, value_type='initial')
-        if yinitial is not None:
-            axes.plot(xfit,yinitial,color='red',linestyle='--')
+        if yinitial is None:
+            yinitial = np.empty(xfit.shape)
+            yinitial[:] = np.NAN
 
-        yfitted = self.formula.apply(xfit, self.parameters, value_type='fitted')
-        if yfitted is not None:
-            axes.plot(xfit,yfitted,color='red')
+        yfit = self.formula.apply(xfit, self.parameters, value_type='fitted')
+        if yfit is None:
+            yfit = np.empty(xfit.shape)
+            yfit[:] = np.NAN
+
+        return xfit, yinitial, yfit
+
+
+    def from_data_point_changed(self, data_point):
+        self.redraw()
 
     def from_raw_formula_changed(self, text):
         if text != self.ui.formula_input.text():
@@ -107,12 +122,7 @@ class DataFrame(QtGui.QWidget):
         param_names = func.__code__.co_varnames[1:]
         initial = [self.parameters[name].initial_value for name in param_names]
 
-        if len(self.xdata) == len(self.ydata):
-            xdata = self.xdata
-        elif len(self.xdata) == len(self.ydata)+1:
-            xdata = (self.xdata[:-1] + self.xdata[1:])/2
-
-        fitvals, cov = scipy.optimize.curve_fit(func, xdata, self.ydata,
+        fitvals, cov = scipy.optimize.curve_fit(func, self.data_set.xdata, self.data_set.ydata,
                                                 p0=initial)
 
         for name,val in zip(param_names, fitvals):
